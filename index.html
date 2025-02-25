@@ -63,12 +63,37 @@
             }
         }
 
+        // Add new function to handle web search
+        async function handleSearchFunction(output) {
+            try {
+                const args = JSON.parse(output.arguments);
+                const query = args.query;
+                
+                const response = await fetch(`http://localhost:8888/search/${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                // Send function output
+                sendFunctionOutput(output.call_id, {
+                    title: data.title,
+                    snippet: data.snippet,
+                    source: data.source
+                });
+                
+                // Request new response
+                sendResponseCreate();
+            } catch (error) {
+                showError('Error handling search function: ' + error.message);
+            }
+        }
+
         function handleFunctionCall(output) {
-            if (output?.type === "function_call" && 
-                output?.name === "get_weather" && 
-                output?.call_id) {
+            if (output?.type === "function_call" && output?.call_id) {
                 console.log('Function call found:', output);
-                handleWeatherFunction(output);
+                if (output.name === "get_weather") {
+                    handleWeatherFunction(output);
+                } else if (output.name === "search_web") {
+                    handleSearchFunction(output);
+                }
             }
         }
 
@@ -122,6 +147,18 @@
                                 "location": { "type": "string" }
                             },
                             "required": ["location"]
+                        }
+                    },
+                    {
+                        "type": "function",
+                        "name": "search_web",
+                        "description": "Search the web for current information about any topic",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": { "type": "string" }
+                            },
+                            "required": ["query"]
                         }
                     }],
                     "tool_choice": "auto"

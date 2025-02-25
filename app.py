@@ -22,8 +22,11 @@ load_dotenv()
 
 # Get API key from environment variable
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables")
+if not SERPER_API_KEY:
+    raise ValueError("SERPER_API_KEY not found in environment variables")
 
 class SessionResponse(BaseModel):
     session_id: str
@@ -32,6 +35,11 @@ class SessionResponse(BaseModel):
 class WeatherResponse(BaseModel):
     temperature: float
     unit: str
+
+class SearchResponse(BaseModel):
+    title: str
+    snippet: str
+    source: str
 
 @app.get("/session")
 async def get_session():
@@ -77,6 +85,31 @@ async def get_weather(location: str):
             
     except Exception as e:
         return {"error": f"Could not get weather data: {str(e)}"}
+
+@app.get("/search/{query}")
+async def search_web(query: str):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://google.serper.dev/search",
+                headers={"X-API-KEY": SERPER_API_KEY},
+                json={"q": query}
+            )
+            
+            data = response.json()
+            
+            if "organic" in data and len(data["organic"]) > 0:
+                result = data["organic"][0]  # Get the first result
+                return SearchResponse(
+                    title=result.get("title", ""),
+                    snippet=result.get("snippet", ""),
+                    source=result.get("link", "")
+                )
+            else:
+                return {"error": "No results found"}
+                
+    except Exception as e:
+        return {"error": f"Could not perform search: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
