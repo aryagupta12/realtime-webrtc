@@ -22,7 +22,10 @@ A real-time audio chat application using OpenAI's realtime audio API with WebRTC
 
 ```bash
 OPENAI_API_KEY=your-key-here
+SERPER_API_KEY=your-key-here
 ```
+
+Go to https://serper.dev/ and get your API key.
 
 ## Running
 
