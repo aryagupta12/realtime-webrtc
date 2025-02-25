@@ -51,7 +51,7 @@ class SearchResponse(BaseModel):
     image_source: str | None = None
 
 @app.get("/session")
-async def get_session():
+async def get_session(voice: str = "echo"):
     async with httpx.AsyncClient() as client:
         response = await client.post(
             'https://api.openai.com/v1/realtime/sessions',
@@ -61,7 +61,7 @@ async def get_session():
             },
             json={
                 "model": "gpt-4o-realtime-preview-2024-12-17",
-                "voice": "echo",
+                "voice": voice,
                 "instructions": """
                 You are a helpful assistant that can answer questions and help with tasks.
                 You have access to real-time weather data and web search capabilities.

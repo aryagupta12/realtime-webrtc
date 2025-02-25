@@ -4,6 +4,7 @@ class UI {
         startButton: document.getElementById('startButton'),
         stopButton: document.getElementById('stopButton'),
         clearButton: document.getElementById('clearButton'),
+        voiceSelect: document.getElementById('voiceSelect'),
         transcript: document.getElementById('transcript'),
         status: document.getElementById('status'),
         error: document.getElementById('error'),
@@ -87,6 +88,10 @@ class UI {
         img.src = imageUrl;
         this.elements.imageContainer.innerHTML = '';
         this.elements.imageContainer.appendChild(imageWrapper);
+    }
+
+    static updateVoiceSelector(enabled) {
+        this.elements.voiceSelect.disabled = !enabled;
     }
 }
 
@@ -185,10 +190,11 @@ ${forecast}
 
 // WebRTC Manager
 class WebRTCManager {
-    constructor() {
+    constructor(app) {
         this.peerConnection = null;
         this.audioStream = null;
         this.dataChannel = null;
+        this.app = app;  // Store reference to the app
     }
 
     async setupAudio() {
@@ -242,10 +248,11 @@ class WebRTCManager {
 
     sendSessionUpdate() {
         this.sendMessage({
-            type: 'session.update',
+            type: "session.update",
             session: {
+                voice: this.app.currentVoice,
                 tools: CONFIG.TOOLS,
-                tool_choice: 'auto'
+                tool_choice: "auto"
             }
         });
     }
@@ -306,6 +313,7 @@ class WebRTCManager {
 class App {
     constructor() {
         this.webrtc = null;
+        this.currentVoice = CONFIG.VOICE;
         this.bindEvents();
     }
 
@@ -313,20 +321,31 @@ class App {
         UI.elements.startButton.addEventListener('click', () => this.init());
         UI.elements.stopButton.addEventListener('click', () => this.stop());
         UI.elements.clearButton.addEventListener('click', () => UI.clearConversation());
-        document.addEventListener('DOMContentLoaded', () => UI.updateStatus('Ready to start'));
+        UI.elements.voiceSelect.addEventListener('change', (e) => {
+            if (!this.webrtc) {
+                this.currentVoice = e.target.value;
+            } else {
+                e.target.value = this.currentVoice;
+            }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            UI.updateStatus('Ready to start');
+            UI.elements.voiceSelect.value = this.currentVoice;
+        });
     }
 
     async init() {
         UI.elements.startButton.disabled = true;
+        UI.updateVoiceSelector(false);
         
         try {
             UI.updateStatus('Initializing...');
             
-            const tokenResponse = await fetch(CONFIG.API_ENDPOINTS.session);
+            const tokenResponse = await fetch(`${CONFIG.API_ENDPOINTS.session}?voice=${this.currentVoice}`);
             const data = await tokenResponse.json();
             const EPHEMERAL_KEY = data.client_secret.value;
 
-            this.webrtc = new WebRTCManager();
+            this.webrtc = new WebRTCManager(this);
             this.webrtc.peerConnection = new RTCPeerConnection();
             await this.webrtc.setupAudio();
             this.webrtc.setupDataChannel();
@@ -351,10 +370,12 @@ class App {
 
             UI.updateStatus('Connected');
             UI.updateButtons(true);
+            UI.updateVoiceSelector(true);
             UI.hideError();
 
         } catch (error) {
             UI.updateButtons(false);
+            UI.updateVoiceSelector(true);
             ErrorHandler.handle(error, 'Initialization');
             UI.updateStatus('Failed to connect');
         }
@@ -366,6 +387,7 @@ class App {
             this.webrtc = null;
         }
         UI.updateButtons(false);
+        UI.updateVoiceSelector(true);
         UI.updateStatus('Ready to start');
     }
 }

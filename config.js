@@ -6,6 +6,8 @@ const CONFIG = {
         realtime: 'https://api.openai.com/v1/realtime'
     },
     MODEL: 'gpt-4o-realtime-preview-2024-12-17',
+    VOICE: 'echo',
+    VOICES: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'],
     INITIAL_MESSAGE: {
         text: 'My name is Geert and I live in Antwerp, Belgium.'
     },
