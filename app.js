@@ -119,31 +119,49 @@ class MessageHandler {
             const data = await response.json();
             
             // Format the current weather information
-            const currentWeather = `
-Current Weather in ${args.location}:
+            const currentWeather = `Current Weather in ${args.location}:
 • Temperature: ${data.temperature}°${data.unit_temperature}
 • Humidity: ${data.humidity}%
 • Precipitation: ${data.precipitation}${data.unit_precipitation}
-• Wind Speed: ${data.wind_speed}${data.unit_wind}
-            `.trim();
+• Wind Speed: ${data.wind_speed}${data.unit_wind}`.trim();
 
             // Format the forecast information
-            const forecast = data.forecast_daily.map(day => `
-${new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}:
+            const forecast = data.forecast_daily.map(day => `${new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}:
 • High: ${day.max_temp}°${data.unit_temperature}
 • Low: ${day.min_temp}°${data.unit_temperature}
-• Precipitation: ${day.precipitation}${data.unit_precipitation}
-            `.trim()).join('\n\n');
-
-            // Combine current weather and forecast
-            const fullWeatherReport = `
-${currentWeather}
-
-7-Day Forecast:
-${forecast}
-            `.trim();
+• Precipitation: ${day.precipitation}${data.unit_precipitation}`.trim()).join('\n\n');
             
-            UI.updateTranscript(currentWeather, 'function-result');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message function-result weather';
+            
+            // Add current weather
+            const currentWeatherDiv = document.createElement('div');
+            currentWeatherDiv.textContent = currentWeather;
+            messageDiv.appendChild(currentWeatherDiv);
+            
+            // Add forecast toggle button
+            const toggleButton = document.createElement('button');
+            toggleButton.className = 'forecast-toggle';
+            toggleButton.textContent = '7-Day Forecast';
+            messageDiv.appendChild(toggleButton);
+            
+            // Add forecast content (hidden by default)
+            const forecastDiv = document.createElement('div');
+            forecastDiv.className = 'forecast-content';
+            forecastDiv.textContent = forecast;
+            messageDiv.appendChild(forecastDiv);
+            
+            // Add click handler for toggle
+            toggleButton.addEventListener('click', () => {
+                toggleButton.classList.toggle('expanded');
+                forecastDiv.classList.toggle('expanded');
+            });
+            
+            if (UI.elements.transcript.firstChild) {
+                UI.elements.transcript.insertBefore(messageDiv, UI.elements.transcript.firstChild);
+            } else {
+                UI.elements.transcript.appendChild(messageDiv);
+            }
             
             return {
                 temperature: data.temperature,
@@ -166,12 +184,41 @@ ${forecast}
             const response = await fetch(`${CONFIG.API_ENDPOINTS.search}/${encodeURIComponent(args.query)}`);
             const data = await response.json();
             
-            UI.updateTranscript(
-                `Search Results:
-                    ${data.title}
-                    ${data.snippet}`,
-                'function-result'
-            );
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message function-result search';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'result-title';
+            const titleLink = document.createElement('a');
+            titleLink.href = data.source;
+            titleLink.target = '_blank';
+            titleLink.rel = 'noopener noreferrer';
+            titleLink.textContent = data.title;
+            titleDiv.appendChild(titleLink);
+            
+            const snippetDiv = document.createElement('div');
+            snippetDiv.className = 'result-snippet';
+            snippetDiv.textContent = data.snippet;
+            
+            const sourceDiv = document.createElement('div');
+            sourceDiv.className = 'result-source';
+            const sourceLink = document.createElement('a');
+            sourceLink.href = data.source;
+            sourceLink.target = '_blank';
+            sourceLink.rel = 'noopener noreferrer';
+            sourceLink.textContent = data.source;
+            sourceDiv.appendChild(sourceLink);
+            
+            messageDiv.appendChild(titleDiv);
+            messageDiv.appendChild(snippetDiv);
+            messageDiv.appendChild(sourceDiv);
+            
+            if (UI.elements.transcript.firstChild) {
+                UI.elements.transcript.insertBefore(messageDiv, UI.elements.transcript.firstChild);
+            } else {
+                UI.elements.transcript.appendChild(messageDiv);
+            }
+            
             UI.displayImage(data.image_url, data.image_source, args.query);
             
             return {
