@@ -23,9 +23,33 @@ body {
     padding: 20px;
 }
 
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.app-logo {
+    width: 48px;
+    height: 48px;
+    color: var(--primary-color);
+    transition: transform 0.3s ease;
+}
+
+.app-logo:hover {
+    transform: rotate(180deg);
+}
+
 h1 {
     color: var(--primary-color);
-    margin-bottom: 1.5rem;
+    margin: 0;
     text-align: center;
     font-size: 2rem;
     font-weight: 500;
