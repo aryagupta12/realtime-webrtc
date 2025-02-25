@@ -10,13 +10,19 @@
     <div class="container">
         <h1>OpenAI Realtime Audio Demo</h1>
         
-        <div class="controls" style="text-align: center; margin-bottom: 2rem;">
+        <div class="controls">
             <button id="startButton">Start</button>
             <button id="stopButton" disabled>Stop</button>
+            <button id="clearButton">Clear</button>
         </div>
 
-        <div class="transcript-container">
-            <div id="transcript" class="transcript"></div>
+        <div class="content-wrapper">
+            <div class="transcript-container">
+                <div id="transcript" class="transcript"></div>
+            </div>
+            <div class="image-container" id="imageContainer">
+                <!-- Images will be displayed here -->
+            </div>
         </div>
 
         <div id="status" class="status">Ready to start</div>
@@ -26,6 +32,7 @@
     <script>
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
+        const clearButton = document.getElementById('clearButton');
         const transcriptDiv = document.getElementById('transcript');
         const statusDiv = document.getElementById('status');
         const errorDiv = document.getElementById('error');
@@ -37,7 +44,16 @@
         // Message handling functions
         function handleTranscript(message) {
             if (message.response?.output?.[0]?.content?.[0]?.transcript) {
-                transcriptDiv.textContent += message.response.output[0].content[0].transcript + ' ';
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message assistant-message';
+                messageDiv.textContent = message.response.output[0].content[0].transcript;
+                
+                // Insert at the beginning of the transcript
+                if (transcriptDiv.firstChild) {
+                    transcriptDiv.insertBefore(messageDiv, transcriptDiv.firstChild);
+                } else {
+                    transcriptDiv.appendChild(messageDiv);
+                }
             }
         }
 
@@ -48,6 +64,21 @@
                 
                 const response = await fetch(`http://localhost:8888/weather/${encodeURIComponent(location)}`);
                 const data = await response.json();
+                
+                // Display function result
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'message function-result';
+                resultDiv.innerHTML = `
+                    <strong>Weather in ${location}:</strong><br>
+                    Temperature: ${data.temperature}°${data.unit}
+                `;
+                
+                // Insert at the beginning of the transcript
+                if (transcriptDiv.firstChild) {
+                    transcriptDiv.insertBefore(resultDiv, transcriptDiv.firstChild);
+                } else {
+                    transcriptDiv.appendChild(resultDiv);
+                }
                 
                 // Send function output
                 sendFunctionOutput(output.call_id, {
@@ -63,7 +94,6 @@
             }
         }
 
-        // Add new function to handle web search
         async function handleSearchFunction(output) {
             try {
                 const args = JSON.parse(output.arguments);
@@ -72,11 +102,77 @@
                 const response = await fetch(`http://localhost:8888/search/${encodeURIComponent(query)}`);
                 const data = await response.json();
                 
+                // Display function result
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'message function-result';
+                resultDiv.innerHTML = `
+                    <strong>Search Results:</strong><br>
+                    <strong>${data.title}</strong><br>
+                    ${data.snippet}<br>
+                    <a href="${data.source}" target="_blank">Read more</a>
+                `;
+                
+                // Insert at the beginning of the transcript
+                if (transcriptDiv.firstChild) {
+                    transcriptDiv.insertBefore(resultDiv, transcriptDiv.firstChild);
+                } else {
+                    transcriptDiv.appendChild(resultDiv);
+                }
+                
+                // Display image if available
+                const contentWrapper = document.querySelector('.content-wrapper');
+                if (data.image_url) {
+                    contentWrapper.classList.add('with-image');
+                    const imageContainer = document.getElementById('imageContainer');
+                    const imageWrapper = document.createElement('div');
+                    imageWrapper.className = 'image-wrapper';
+                    
+                    // Create image element
+                    const img = document.createElement('img');
+                    img.className = 'search-image';
+                    img.alt = query;
+                    
+                    // Add loading indicator
+                    const loadingDiv = document.createElement('div');
+                    loadingDiv.textContent = 'Loading image...';
+                    loadingDiv.className = 'image-loading';
+                    imageWrapper.appendChild(loadingDiv);
+                    
+                    // Handle image load
+                    img.onload = () => {
+                        loadingDiv.remove();
+                        imageWrapper.appendChild(img);
+                        const caption = document.createElement('div');
+                        caption.className = 'image-caption';
+                        caption.innerHTML = `
+                            Image related to: ${query}<br>
+                            <a href="${data.image_source}" target="_blank">Image source</a>
+                        `;
+                        imageWrapper.appendChild(caption);
+                    };
+                    
+                    // Handle image error
+                    img.onerror = () => {
+                        loadingDiv.textContent = 'Failed to load image';
+                        loadingDiv.className = 'image-error';
+                    };
+                    
+                    // Set image source after setting up handlers
+                    img.src = data.image_url;
+                    
+                    imageContainer.innerHTML = ''; // Clear previous images
+                    imageContainer.appendChild(imageWrapper);
+                } else {
+                    contentWrapper.classList.remove('with-image');
+                }
+                
                 // Send function output
                 sendFunctionOutput(output.call_id, {
                     title: data.title,
                     snippet: data.snippet,
-                    source: data.source
+                    source: data.source,
+                    image_url: data.image_url,
+                    image_source: data.image_source
                 });
                 
                 // Request new response
@@ -143,6 +239,7 @@
                         "description": "Get the current weather. Works only for Earth",
                         "parameters": {
                             "type": "object",
+                            "description": "The location to get the weather for in English",
                             "properties": {
                                 "location": { "type": "string" }
                             },
@@ -278,6 +375,18 @@
             updateStatus('Ready to start');
         }
 
+        function clearConversation() {
+            const transcriptDiv = document.getElementById('transcript');
+            const imageContainer = document.getElementById('imageContainer');
+            const contentWrapper = document.querySelector('.content-wrapper');
+            
+            transcriptDiv.innerHTML = '';
+            imageContainer.innerHTML = '';
+            contentWrapper.classList.remove('with-image');
+            
+            updateStatus('Ready to start');
+        }
+
         // UI helper functions
         function updateStatus(message) {
             statusDiv.textContent = message;
@@ -295,6 +404,7 @@
         // Event listeners
         startButton.addEventListener('click', init);
         stopButton.addEventListener('click', stopRecording);
+        document.getElementById('clearButton').addEventListener('click', clearConversation);
         document.addEventListener('DOMContentLoaded', () => updateStatus('Ready to start'));
     </script>
 </body>
