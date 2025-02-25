@@ -34,7 +34,14 @@ class SessionResponse(BaseModel):
 
 class WeatherResponse(BaseModel):
     temperature: float
-    unit: str
+    humidity: float
+    precipitation: float
+    wind_speed: float
+    unit_temperature: str = "celsius"
+    unit_precipitation: str = "mm"
+    unit_wind: str = "km/h"
+    forecast_daily: list
+    current_time: str
 
 class SearchResponse(BaseModel):
     title: str
@@ -54,7 +61,14 @@ async def get_session():
             },
             json={
                 "model": "gpt-4o-realtime-preview-2024-12-17",
-                "voice": "echo"
+                "voice": "echo",
+                "instructions": """
+                You are a helpful assistant that can answer questions and help with tasks.
+                You have access to real-time weather data and web search capabilities.
+                When asked about the weather, provide the current temperature and humidity. Provide more information when asked.
+                When asked about a forecast, provide it but say ranging from x to y degrees over the days.
+                Never answer in markdown. Text only.
+                """
             }
         )
         return response.json()
@@ -76,14 +90,39 @@ async def get_weather(location: str):
             lat = geocoding_data["results"][0]["latitude"]
             lon = geocoding_data["results"][0]["longitude"]
             
-            # Get weather data
+            # Get weather data with more parameters
             weather_response = await client.get(
-                f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m"
+                f"https://api.open-meteo.com/v1/forecast"
+                f"?latitude={lat}&longitude={lon}"
+                f"&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m"
+                f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum"
+                f"&timezone=auto"
+                f"&forecast_days=7"
             )
             weather_data = weather_response.json()
             
-            temperature = weather_data["current"]["temperature_2m"]
-            return WeatherResponse(temperature=temperature, unit="celsius")
+            # Extract current weather
+            current = weather_data["current"]
+            daily = weather_data["daily"]
+            
+            # Create daily forecast array
+            forecast = []
+            for i in range(len(daily["time"])):
+                forecast.append({
+                    "date": daily["time"][i],
+                    "max_temp": daily["temperature_2m_max"][i],
+                    "min_temp": daily["temperature_2m_min"][i],
+                    "precipitation": daily["precipitation_sum"][i]
+                })
+            
+            return WeatherResponse(
+                temperature=current["temperature_2m"],
+                humidity=current["relative_humidity_2m"],
+                precipitation=current["precipitation"],
+                wind_speed=current["wind_speed_10m"],
+                forecast_daily=forecast,
+                current_time=current["time"]
+            )
             
     except Exception as e:
         return {"error": f"Could not get weather data: {str(e)}"}
