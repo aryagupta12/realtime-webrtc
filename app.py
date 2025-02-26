@@ -146,6 +146,7 @@ async def get_weather(location: str):
             )
             
     except Exception as e:
+        logger.error(f"Error getting weather data: {str(e)}")
         return JSONResponse(status_code=500, content={"error": f"Could not get weather data: {str(e)}"})
 
 @app.get("/search/{query}")
@@ -200,6 +201,7 @@ async def search_web(query: str):
                 return {"error": "No results found"}
                 
     except Exception as e:
+        logger.error(f"Error performing search: {str(e)}")
         return JSONResponse(status_code=500, content={"error": f"Could not perform search: {str(e)}"})
 
 if __name__ == "__main__":
