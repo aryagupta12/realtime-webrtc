@@ -1,10 +1,21 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 import random
+
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Example usage of logger
+logger.info("Logging is set up.")
+
 
 app = FastAPI()
 
@@ -23,10 +34,13 @@ load_dotenv()
 # Get API key from environment variable
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+REALTIME_SESSION_URL = os.getenv("REALTIME_SESSION_URL")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables")
 if not SERPER_API_KEY:
     raise ValueError("SERPER_API_KEY not found in environment variables")
+if not REALTIME_SESSION_URL:
+    raise ValueError("REALTIME_SESSION_URL not found in environment variables")
 
 class SessionResponse(BaseModel):
     session_id: str
@@ -52,26 +66,33 @@ class SearchResponse(BaseModel):
 
 @app.get("/session")
 async def get_session(voice: str = "echo"):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            'https://api.openai.com/v1/realtime/sessions',
-            headers={
-                'Authorization': f'Bearer {OPENAI_API_KEY}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                "model": "gpt-4o-realtime-preview-2024-12-17",
-                "voice": voice,
-                "instructions": """
-                You are a helpful assistant that can answer questions and help with tasks.
-                You have access to real-time weather data and web search capabilities.
-                When asked about the weather, provide the current temperature and humidity. Provide more information when asked.
-                When asked about a forecast, provide it but say ranging from x to y degrees over the days.
-                Never answer in markdown. Text only.
-                """
-            }
-        )
-        return response.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                REALTIME_SESSION_URL,
+                headers={
+                    'Authorization': f'Bearer {OPENAI_API_KEY}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    "model": "gpt-4o-realtime-preview-2024-12-17",
+                    "voice": voice,
+                    "instructions": """
+                    You are a helpful assistant that can answer questions and help with tasks.
+                    You have access to real-time weather data and web search capabilities.
+                    When asked about the weather, provide the current temperature and humidity. Provide more information when asked.
+                    When asked about a forecast, provide it but say ranging from x to y degrees over the days.
+                    Never answer in markdown. Text only.
+                    """
+                }
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error occurred: {e.response.status_code}")
+        return JSONResponse(status_code=e.response.status_code, content={"error": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error", "details": str(e)})
 
 @app.get("/weather/{location}")
 async def get_weather(location: str):
@@ -125,7 +146,7 @@ async def get_weather(location: str):
             )
             
     except Exception as e:
-        return {"error": f"Could not get weather data: {str(e)}"}
+        return JSONResponse(status_code=500, content={"error": f"Could not get weather data: {str(e)}"})
 
 @app.get("/search/{query}")
 async def search_web(query: str):
@@ -179,7 +200,7 @@ async def search_web(query: str):
                 return {"error": "No results found"}
                 
     except Exception as e:
-        return {"error": f"Could not perform search: {str(e)}"}
+        return JSONResponse(status_code=500, content={"error": f"Could not perform search: {str(e)}"})
 
 if __name__ == "__main__":
     import uvicorn

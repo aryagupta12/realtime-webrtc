@@ -23,9 +23,15 @@ A real-time audio chat application using OpenAI's realtime audio API with WebRTC
 ```bash
 OPENAI_API_KEY=your-key-here
 SERPER_API_KEY=your-key-here
+REALTIME_SESSION_URL=https://api.openai.com/v1/realtime/sessions
 ```
 
-Go to https://serper.dev/ and get your API key.
+Notes: 
+
+- Go to https://serper.dev/ and get your API key.
+- The realtime session URL for Azure OpenAI will be different; only OpenAI is supported for now
+
+
 
 ## Running
 
