@@ -42,6 +42,10 @@ class UI {
         this.elements.imageContainer.innerHTML = '';
         this.elements.contentWrapper.classList.remove('with-image');
         this.updateStatus('Ready to start');
+        if (map) {
+            map.remove();
+            map = null;
+        }
     }
 
     static updateButtons(isConnected) {
@@ -50,8 +54,20 @@ class UI {
     }
 
     static displayImage(imageUrl, imageSource, query) {
+        const sideContainer = document.querySelector('.side-container');
+        const imageContainer = this.elements.imageContainer;
+        
         if (!imageUrl) {
+            imageContainer.innerHTML = '';
             this.elements.contentWrapper.classList.remove('with-image');
+            // Recenter map after layout changes
+            if (map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                    const center = map.getCenter();
+                    map.setView(center, map.getZoom());
+                }, 100);
+            }
             return;
         }
 
@@ -86,8 +102,8 @@ class UI {
         };
         
         img.src = imageUrl;
-        this.elements.imageContainer.innerHTML = '';
-        this.elements.imageContainer.appendChild(imageWrapper);
+        imageContainer.innerHTML = '';
+        imageContainer.appendChild(imageWrapper);
     }
 
     static updateVoiceSelector(enabled) {
@@ -163,6 +179,10 @@ class MessageHandler {
                 UI.elements.transcript.appendChild(messageDiv);
             }
             
+            if (data.latitude && data.longitude) {
+                updateMap(data.latitude, data.longitude, data.location_name);
+            }
+            
             return {
                 temperature: data.temperature,
                 humidity: data.humidity,
@@ -170,7 +190,10 @@ class MessageHandler {
                 wind_speed: data.wind_speed,
                 forecast_daily: data.forecast_daily,
                 current_time: data.current_time,
-                location: args.location
+                location: args.location,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                location_name: data.location_name
             };
         } catch (error) {
             ErrorHandler.handle(error, 'Weather Function');
@@ -437,6 +460,35 @@ class App {
         UI.updateVoiceSelector(true);
         UI.updateStatus('Ready to start');
     }
+}
+
+let map = null;
+
+function updateMap(latitude, longitude, locationName) {
+    if (!map) {
+        map = L.map('map').setView([latitude, longitude], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+    } else {
+        map.setView([latitude, longitude], 10);
+        map.eachLayer((layer) => {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+    }
+    
+    L.marker([latitude, longitude])
+        .addTo(map)
+        .bindPopup(locationName)
+        .openPopup();
+
+    // Force map to recalculate its container size
+    setTimeout(() => {
+        map.invalidateSize();
+        map.setView([latitude, longitude], 10);
+    }, 100);
 }
 
 // Initialize the application

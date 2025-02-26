@@ -56,6 +56,9 @@ class WeatherResponse(BaseModel):
     unit_wind: str = "km/h"
     forecast_daily: list
     current_time: str
+    latitude: float
+    longitude: float
+    location_name: str
 
 class SearchResponse(BaseModel):
     title: str
@@ -96,7 +99,6 @@ async def get_session(voice: str = "echo"):
 
 @app.get("/weather/{location}")
 async def get_weather(location: str):
-    # First get coordinates for the location
     try:
         async with httpx.AsyncClient() as client:
             # Get coordinates for location
@@ -110,6 +112,7 @@ async def get_weather(location: str):
                 
             lat = geocoding_data["results"][0]["latitude"]
             lon = geocoding_data["results"][0]["longitude"]
+            location_name = geocoding_data["results"][0]["name"]
             
             # Get weather data with more parameters
             weather_response = await client.get(
@@ -142,7 +145,10 @@ async def get_weather(location: str):
                 precipitation=current["precipitation"],
                 wind_speed=current["wind_speed_10m"],
                 forecast_daily=forecast,
-                current_time=current["time"]
+                current_time=current["time"],
+                latitude=lat,
+                longitude=lon,
+                location_name=location_name
             )
             
     except Exception as e:
