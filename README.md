@@ -1,5 +1,7 @@
 # OpenAI Real-time WebRTC Demo
 
+<img src="image.png" width="600" height="400" />
+
 A real-time audio chat application using OpenAI's realtime audio API with WebRTC. Ask about the weather in any location and get real-time responses using Open-Meteo API.
 
 **Notes:** 
