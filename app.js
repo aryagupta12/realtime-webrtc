@@ -41,6 +41,7 @@ class UI {
         this.elements.transcript.innerHTML = '';
         this.elements.imageContainer.innerHTML = '';
         this.elements.contentWrapper.classList.remove('with-image');
+        this.hideError();
         this.updateStatus('Ready to start');
         if (map) {
             map.remove();
@@ -136,16 +137,18 @@ class MessageHandler {
             
             // Format the current weather information
             const currentWeather = `Current Weather in ${args.location}:
-• Temperature: ${data.temperature}°${data.unit_temperature}
+${CONFIG.WEATHER_ICONS[data.weather_code] || '🌡️'} ${data.temperature}°${data.unit_temperature}
 • Humidity: ${data.humidity}%
 • Precipitation: ${data.precipitation}${data.unit_precipitation}
 • Wind Speed: ${data.wind_speed}${data.unit_wind}`.trim();
 
             // Format the forecast information
-            const forecast = data.forecast_daily.map(day => `${new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}:
-• High: ${day.max_temp}°${data.unit_temperature}
+            const forecast = data.forecast_daily.map(day => 
+                `${new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}:
+${CONFIG.WEATHER_ICONS[day.weather_code] || '🌡️'} High: ${day.max_temp}°${data.unit_temperature}
 • Low: ${day.min_temp}°${data.unit_temperature}
-• Precipitation: ${day.precipitation}${data.unit_precipitation}`.trim()).join('\n\n');
+• Precipitation: ${day.precipitation}${data.unit_precipitation}`.trim()
+            ).join('\n\n');
             
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message function-result weather';
@@ -197,7 +200,7 @@ class MessageHandler {
             };
         } catch (error) {
             ErrorHandler.handle(error, 'Weather Function');
-            return null;
+            return "Could not get weather data";
         }
     }
 
@@ -253,7 +256,7 @@ class MessageHandler {
             };
         } catch (error) {
             ErrorHandler.handle(error, 'Search Function');
-            return null;
+            return "Could not perform search";
         }
     }
 }
@@ -266,6 +269,7 @@ class WebRTCManager {
         this.dataChannel = null;
         this.app = app;  // Store reference to the app
     }
+    
 
     async setupAudio() {
         const audioEl = document.createElement('audio');
@@ -412,7 +416,15 @@ class App {
             UI.updateStatus('Initializing...');
             
             const tokenResponse = await fetch(`${CONFIG.API_ENDPOINTS.session}?voice=${this.currentVoice}`);
+            if (!tokenResponse.ok) {
+                throw new Error('Could not establish session');
+            }
+
             const data = await tokenResponse.json();
+            if (!data.client_secret?.value) {
+                throw new Error('Could not establish session');
+            }
+
             const EPHEMERAL_KEY = data.client_secret.value;
 
             this.webrtc = new WebRTCManager(this);
@@ -431,10 +443,19 @@ class App {
                     'Content-Type': 'application/sdp'
                 },
             });
+            
+            if (!sdpResponse.ok) {
+                throw new Error('Could not establish connection');
+            }
+
+            const sdpText = await sdpResponse.text();
+            if (!sdpText) {
+                throw new Error('Could not establish connection');
+            }
 
             const answer = {
                 type: 'answer',
-                sdp: await sdpResponse.text(),
+                sdp: sdpText,
             };
             await this.webrtc.peerConnection.setRemoteDescription(answer);
 

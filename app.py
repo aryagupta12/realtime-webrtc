@@ -29,12 +29,17 @@ app.add_middleware(
 )
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Get API key from environment variable
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 REALTIME_SESSION_URL = os.getenv("REALTIME_SESSION_URL")
+
+# this is the openai url: https://api.openai.com/v1/realtime/sessions
+logger.info(f"REALTIME_SESSION_URL: {REALTIME_SESSION_URL}")
+
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables")
 if not SERPER_API_KEY:
@@ -59,6 +64,7 @@ class WeatherResponse(BaseModel):
     latitude: float
     longitude: float
     location_name: str
+    weather_code: int
 
 class SearchResponse(BaseModel):
     title: str
@@ -85,7 +91,7 @@ async def get_session(voice: str = "echo"):
                     You have access to real-time weather data and web search capabilities.
                     When asked about the weather, provide the current temperature and humidity. Provide more information when asked.
                     When asked about a forecast, provide it but say ranging from x to y degrees over the days.
-                    Never answer in markdown. Text only.
+                    Never answer in markdown format. Plain text only with no markdown.
                     """
                 }
             )
@@ -118,8 +124,8 @@ async def get_weather(location: str):
             weather_response = await client.get(
                 f"https://api.open-meteo.com/v1/forecast"
                 f"?latitude={lat}&longitude={lon}"
-                f"&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m"
-                f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum"
+                f"&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code"
+                f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code"
                 f"&timezone=auto"
                 f"&forecast_days=7"
             )
@@ -136,7 +142,8 @@ async def get_weather(location: str):
                     "date": daily["time"][i],
                     "max_temp": daily["temperature_2m_max"][i],
                     "min_temp": daily["temperature_2m_min"][i],
-                    "precipitation": daily["precipitation_sum"][i]
+                    "precipitation": daily["precipitation_sum"][i],
+                    "weather_code": daily["weather_code"][i]
                 })
             
             return WeatherResponse(
@@ -148,7 +155,8 @@ async def get_weather(location: str):
                 current_time=current["time"],
                 latitude=lat,
                 longitude=lon,
-                location_name=location_name
+                location_name=location_name,
+                weather_code=current["weather_code"]
             )
             
     except Exception as e:
