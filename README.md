@@ -7,9 +7,10 @@ A real-time audio chat application using OpenAI's realtime audio API with WebRTC
 **Notes:** 
 
 - work in progress
-- does not work with Azure OpenAI just yet; you need an OpenAI account and topped up on credits
-- WebRTC API is in preview (as of 2025-02-28)
+- works with OpenAI and Azure OpenAI; by default Azure OpenAI is used
+- WebRTC API is in preview
 
+Check .env.example for an example .env file.
 
 
 ## Features
@@ -29,19 +30,17 @@ A real-time audio chat application using OpenAI's realtime audio API with WebRTC
    - Windows: `.venv\Scripts\activate`
    - Unix/macOS: `source .venv/bin/activate`
 4. Install dependencies: `pip install -r requirements.txt`
-5. Create `.env` file with your OpenAI API key:   
+5. Create `.env` file based on `.env.example`
 
-```bash
-OPENAI_API_KEY=your-key-here
-SERPER_API_KEY=your-key-here
-REALTIME_SESSION_URL=https://api.openai.com/v1/realtime/sessions
-```
+
 
 Notes: 
 
 - Go to https://serper.dev/ and get your API key.
 - Go to https://openai.com and get your API key.
-- The realtime session URL for Azure OpenAI will be different; only OpenAI is supported for now
+- Modify app.py to use the OpenAI API instead of the Azure OpenAI key
+- Modify config.js to use the OpenAI realtime endpoint instead of the Azure OpenAI realtime endpoint
+- Modify the model name in the /session endpoint in app.py to use the OpenAI model name instead of the Azure OpenAI model name
 
 
 

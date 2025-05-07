@@ -32,8 +32,8 @@ app.add_middleware(
 load_dotenv(override=True)
 
 # Get API key from environment variable
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-# OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 REALTIME_SESSION_URL = os.getenv("REALTIME_SESSION_URL")
 
@@ -84,7 +84,7 @@ async def get_session(voice: str = "echo"):
                     'Content-Type': 'application/json'
                 },
                 json={
-                    "model": "gpt-4o-realtime-preview-2024-12-17",
+                    "model": "gpt-4o-realtime-preview",
                     "voice": voice,
                     "instructions": """
                     You are a helpful assistant that can answer questions and help with tasks.
