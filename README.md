@@ -8,6 +8,7 @@ A real-time audio chat application using OpenAI's realtime audio API with WebRTC
 
 - work in progress
 - works with OpenAI and Azure OpenAI; by default Azure OpenAI is used
+- for Azure OpenAI, deploy the service in Sweden Central and deploy the gpt-4o-realtime-preview model
 - WebRTC API is in preview
 
 Check .env.example for an example .env file.
