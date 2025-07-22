@@ -3,8 +3,8 @@ const CONFIG = {
         session: 'http://localhost:8888/session',
         weather: 'http://localhost:8888/weather',
         search: 'http://localhost:8888/search',
-        // realtime: 'https://api.openai.com/v1/realtime'
-        realtime: 'https://swedencentral.realtimeapi-preview.ai.azure.com/v1/realtimertc'
+        realtime: 'https://api.openai.com/v1/realtime'
+        // realtime: 'https://swedencentral.realtimeapi-preview.ai.azure.com/v1/realtimertc'
     },
     MODEL: 'gpt-4o-realtime-preview-2024-12-17',
     VOICE: 'echo',

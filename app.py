@@ -32,8 +32,8 @@ app.add_middleware(
 load_dotenv(override=True)
 
 # Get API key from environment variable
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 REALTIME_SESSION_URL = os.getenv("REALTIME_SESSION_URL")
 
